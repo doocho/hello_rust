@@ -150,31 +150,34 @@ fn main() {
     //     }
     // });
     // println!("Tx: {:?}", tx);
+    // let txs_string = "Alice,Bob,100\nBob,Charlie,200\nCharlie,Alice,300";
+    // let txs = parse_txs(txs_string).unwrap();
+    // println!(
+    //     "Txs count: {:?}, total amount: {:?}",
+    //     txs.len(),
+    //     total_amount_with_print_items(&txs)
+    // );
 
-    let txs_string = "Alice,Bob,100\nBob,Charlie,200\nCharlie,Alice,300";
-    let txs = parse_txs(txs_string).unwrap();
-    println!(
-        "Txs count: {:?}, total amount: {:?}",
-        txs.len(),
-        total_amount_with_print_items(&txs)
-    );
+    // let payments = vec![Payment {
+    //     id: 1,
+    //     from: "Alice".to_string(),
+    //     to: "Bob".to_string(),
+    //     amount: 100,
+    // }];
+    // println!(
+    //     "Payments count: {:?}, total amount: {:?}",
+    //     payments.len(),
+    //     total_amount_with_print_items(&payments)
+    // );
 
-    let payments = vec![Payment {
-        id: 1,
-        from: "Alice".to_string(),
-        to: "Bob".to_string(),
-        amount: 100,
-    }];
-    println!(
-        "Payments count: {:?}, total amount: {:?}",
-        payments.len(),
-        total_amount_with_print_items(&payments)
-    );
-
-    let tx1 = Tx::from_str("Alice,Bob,100").unwrap();
-    println!("Tx1: {:?}", tx1);
-    let tx2 = "Alice,Bob,100".parse::<Tx>().unwrap();
-    println!("Tx2: {:?}", tx2);
+    // let tx1 = Tx::from_str("Alice,Bob,100").unwrap();
+    // println!("Tx1: {:?}", tx1);
+    // let tx2 = "Alice,Bob,100".parse::<Tx>().unwrap();
+    // println!("Tx2: {:?}", tx2);
+    let a = "Hello";
+    let b = "World";
+    let result = longer(a, b);
+    println!("Result: {:?}", result);
 }
 
 fn filter_large_txs<'a>(txs: &'a [Tx], min: u64) -> Vec<&'a Tx> {
@@ -209,4 +212,22 @@ fn parse_txs(input: &str) -> Result<Vec<Tx>, ParseTxError> {
         txs.push(tx);
     }
     Ok(txs)
+}
+
+fn longer<'a>(a: &'a str, b: &'a str) -> &'a str {
+    if a.len() > b.len() {
+        a
+    } else {
+        b
+    }
+}
+
+struct LineRef<'a> {
+    line: &'a str,
+}
+
+impl<'a> LineRef<'a> {
+    fn new(line: &'a str) -> Self {
+        Self { line }
+    }
 }
