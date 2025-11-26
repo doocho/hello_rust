@@ -1,11 +1,20 @@
 use std::fmt::Debug;
 use std::num::ParseIntError;
+use std::str::FromStr;
 
 #[derive(Debug)]
 struct Tx {
     from: String,
     to: String,
     amount: u64,
+}
+
+impl FromStr for Tx {
+    type Err = ParseTxError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        parse_tx(s)
+    }
 }
 
 #[derive(Debug)]
@@ -161,6 +170,11 @@ fn main() {
         payments.len(),
         total_amount_with_print_items(&payments)
     );
+
+    let tx1 = Tx::from_str("Alice,Bob,100").unwrap();
+    println!("Tx1: {:?}", tx1);
+    let tx2 = "Alice,Bob,100".parse::<Tx>().unwrap();
+    println!("Tx2: {:?}", tx2);
 }
 
 fn filter_large_txs<'a>(txs: &'a [Tx], min: u64) -> Vec<&'a Tx> {
