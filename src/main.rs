@@ -1,72 +1,79 @@
 use hello_rust::line;
 use hello_rust::tx;
+use hello_rust::tx::Tx;
+use std::sync::Arc;
+use std::time::Duration;
+use tokio::sync::Mutex;
+use tokio::sync::mpsc;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Instant;
 
-fn main() {
-    // let mut txs = vec![
-    //     Tx {
-    //         from: "Alice".to_string(),
-    //         to: "Bob".to_string(),
-    //         amount: 100,
-    //     },
-    //     Tx {
-    //         from: "Bob".to_string(),
-    //         to: "Charlie".to_string(),
-    //         amount: 200,
-    //     },
-    //     Tx {
-    //         from: "Charlie".to_string(),
-    //         to: "Alice".to_string(),
-    //         amount: 300,
-    //     },
-    // ];
+type SharedCounter = Arc<AtomicU64>;
+type SharedTxMempool = Arc<Mutex<Vec<Tx>>>;
 
-    // txs.iter_mut().for_each(|tx| {
-    //     if tx.amount >= 150 {
-    //         tx.amount -= 100;
-    //         println!("Tx: {:?}", tx);
-    //     }
-    // });
+#[tokio::main]
+async fn main() {
+    let start_time = Instant::now();
+    // initialize shared amount
+    let shared_counter = Arc::new(AtomicU64::new(0));
 
-    // let large_txs = filter_large_txs(&txs, 150);
-    // println!("Large Txs: {:?}", large_txs);
+    // initialize channel
+    let (sender, receiver) = mpsc::channel::<Tx>(100);
 
-    // let total = total_amount(&txs);
-    // println!("Total Amount: {:?}", total);
-    // let tx = parse_tx("Alice,Bob,abs").unwrap_or_else(|e| {
-    //     println!("Error: {:?}", e);
-    //     Tx {
-    //         from: "".to_string(),
-    //         to: "".to_string(),
-    //         amount: 0,
-    //     }
-    // });
-    // println!("Tx: {:?}", tx);
-    // let txs_string = "Alice,Bob,100\nBob,Charlie,200\nCharlie,Alice,300";
-    // let txs = parse_txs(txs_string).unwrap();
-    // println!(
-    //     "Txs count: {:?}, total amount: {:?}",
-    //     txs.len(),
-    //     total_amount_with_print_items(&txs)
-    // );
+    // initialize mempool
+    let mempool: SharedTxMempool = Arc::new(Mutex::new(Vec::new()));
 
-    // let payments = vec![Payment {
-    //     id: 1,
-    //     from: "Alice".to_string(),
-    //     to: "Bob".to_string(),
-    //     amount: 100,
-    // }];
-    // println!(
-    //     "Payments count: {:?}, total amount: {:?}",
-    //     payments.len(),
-    //     total_amount_with_print_items(&payments)
-    // );
+    // producer
+    let mempool_producer = mempool.clone();
+    tokio::spawn(async move {
+        let mut amount = 100;
+        loop {
+            amount += 1;
+            let tx = Tx {
+                from: "Alice".to_string(),
+                to: "Bob".to_string(),
+                amount: amount,
+            };
+            if sender.send(tx).await.is_err() {
+                println!("producer channel is full");
+                break;
+            }
+            // println!("producer tick");
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+    });
 
-    // let tx1 = Tx::from_str("Alice,Bob,100").unwrap();
-    // println!("Tx1: {:?}", tx1);
-    // let tx2 = "Alice,Bob,100".parse::<Tx>().unwrap();
-    // println!("Tx2: {:?}", tx2);
-    let a = "Hello";
-    let b = "World";
-    let result = line::longer(a, b);
-    println!("Result: {:?}", result);
+    // consumer
+    let shared_counter_consumer = shared_counter.clone();
+    let mempool_consumer = mempool.clone();
+    tokio::spawn(async move {
+        let mut receiver = receiver; // make receiver mutable
+        while let Some(tx) = receiver.recv().await {
+            println!("received tx: {:?}", tx);
+            shared_counter_consumer.fetch_add(1, Ordering::Relaxed);
+            let mut mempool = mempool_consumer.lock().await;
+            mempool.push(tx);
+        }
+        // println!("consumer tick");
+        tokio::time::sleep(Duration::from_millis(800)).await;
+    });
+
+    // monitor
+    let shared_counter_monitor = shared_counter.clone();
+    let mempool_monitor = mempool.clone();
+    tokio::spawn(async move {
+        loop {
+            {
+                let mempool = mempool_monitor.lock().await;
+                println!("mempool size: {}", mempool.len());
+            }
+            let counter = shared_counter_monitor.load(Ordering::Relaxed);
+            let elapsed = start_time.elapsed();
+            let tps = counter as f64 / elapsed.as_secs_f64();
+            println!("shared counter: {counter}, tps: {tps:.2}");
+            tokio::time::sleep(Duration::from_secs(1)).await;
+        }
+    });
+
+    tokio::time::sleep(Duration::from_secs(5)).await;
 }

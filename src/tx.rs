@@ -3,10 +3,10 @@ use std::num::ParseIntError;
 use std::str::FromStr;
 
 #[derive(Debug)]
-struct Tx {
-    from: String,
-    to: String,
-    amount: u64,
+pub struct Tx {
+    pub from: String,
+    pub to: String,
+    pub amount: u64,
 }
 
 impl FromStr for Tx {
@@ -45,7 +45,7 @@ impl<T> AmountList<T> {
 }
 
 #[derive(Debug)]
-enum ParseTxError {
+pub enum ParseTxError {
     NotEnoughParts,
     InvalidAmount(ParseIntError),
 }
