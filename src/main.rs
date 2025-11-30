@@ -2,17 +2,33 @@ use hello_rust::line;
 use hello_rust::tx;
 use hello_rust::tx::Tx;
 use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
+use std::time::Instant;
 use tokio::sync::Mutex;
 use tokio::sync::mpsc;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Instant;
+use hello_rust::block::Block;
 
 type SharedCounter = Arc<AtomicU64>;
 type SharedTxMempool = Arc<Mutex<Vec<Tx>>>;
 
 #[tokio::main]
 async fn main() {
+    let block = Block {
+        tx_hashes: vec![
+            "0x1234".into(),
+            "0x5678".into(),
+            "0x90ab".into(),
+            "0xcdef".into(),
+        ],
+        merkle_root: "0x1234567890abcdef".into(),
+    };
+    let block_root = block.merkle_root();
+
+    println!("block root: {:?}, is valid: {}", block_root, block.is_valid());
+}
+
+async fn mock_simulate_mempool() {
     let start_time = Instant::now();
     // initialize shared amount
     let shared_counter = Arc::new(AtomicU64::new(0));
